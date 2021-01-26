@@ -45,7 +45,8 @@ slackr_setup_mock <- function(channel="#general",
       username = username,
       bot_user_oauth_token = bot_user_oauth_token,
       incoming_webhook_url = incoming_webhook_url,
-      icon_emoji = icon_emoji
+      icon_emoji = icon_emoji,
+      channel_cache = slackr_census()
     )
   } else {
 
@@ -89,12 +90,12 @@ slackr_msg_mock <- function(txt="",
                             ...) {
 
   if (is.null(workspace) | !exists('workspace')) {
-    channel=Sys.getenv("SLACK_CHANNEL")
+    channel= slackr_chtrans(Sys.getenv("SLACK_CHANNEL"))
     username=Sys.getenv("SLACK_USERNAME")
     icon_emoji=Sys.getenv("SLACK_ICON_EMOJI")
     bot_user_oauth_token=Sys.getenv("SLACK_BOT_USER_OAUTH_TOKEN")
   } else {
-    channel <- workspace$channel
+    channel <- workspace$channel_cache[workspace$channel_cache$name == channel, 'id']
     username <- workspace$username
     icon_emoji <- workspace$icon_emoji
     bot_user_oauth_token <- workspace$bot_user_oauth_token
@@ -114,7 +115,7 @@ slackr_msg_mock <- function(txt="",
     post_message(
       txt        = output,
       emoji = icon_emoji,
-      channel    = slackr_chtrans(channel),
+      channel    = channel,
       bot_user_oauth_token = bot_user_oauth_token,
       username = username,
       link_names = 1,
@@ -123,4 +124,47 @@ slackr_msg_mock <- function(txt="",
 
   invisible(z)
 }
+
+slackr_chtrans <- function(channels, workspace) {
+
+  channel_cache <- slackr:::slackr_census()
+
+  chan_xref <-
+    channel_cache[(channel_cache$name        %in% channels) |
+                    (channel_cache$real_name %in% channels) |
+                    (channel_cache$id        %in% channels), ]
+
+  ifelse(
+    is.na(chan_xref$id),
+    as.character(chan_xref$name),
+    as.character(chan_xref$id)
+  )
+}
+
+post_message <- function(
+  txt,
+  channel,
+  emoji = "",
+  username = Sys.getenv("SLACK_USERNAME"),
+  bot_user_oauth_token = Sys.getenv("SLACK_BOT_USER_OAUTH_TOKEN"),
+  ...)
+{
+  z <-
+    call_slack_api(
+      "/api/chat.postMessage",
+      .method = POST,
+      bot_user_oauth_token = bot_user_oauth_token,
+      body = list(
+        text       = txt,
+        channel    = channel,
+        username   = username,
+        link_names = 1,
+        icon_emoji = emoji,
+        ...
+      )
+    )
+
+  invisible(content(z))
+}
+
 

@@ -125,7 +125,7 @@ slackr_msg_mock <- function(txt="",
   invisible(z)
 }
 
-slackr_chtrans <- function(channels, workspace) {
+slackr_chtrans <- function(channels) {
 
   channel_cache <- slackr:::slackr_census()
 
@@ -145,8 +145,8 @@ post_message <- function(
   txt,
   channel,
   emoji = "",
-  username = Sys.getenv("SLACK_USERNAME"),
-  bot_user_oauth_token = Sys.getenv("SLACK_BOT_USER_OAUTH_TOKEN"),
+  username = username,
+  bot_user_oauth_token = bot_user_oauth_token,
   ...)
 {
   z <-
